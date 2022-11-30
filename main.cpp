@@ -1,12 +1,13 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
-#include <map>
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <time.h>
 #include <cmath>
+#include "heap.h"
+
 struct {
 bool MEAN = false;
 bool STD = false;
@@ -27,15 +28,19 @@ struct element{
 };
 
 
-class maxheap{
-    std::vector<float> data;
+class minmax_heap{
+ std::vector<float> data;
+    int heap_size = 0;
 public:
 
-    maxheap(){
+    minmax_heap(){
         data.push_back(0);
     }
     int parent(int i){
         return std::floor(i/2);
+    }
+    int grand_parent(int i){
+        return std::floor(i/4);
     }
     int left(int i){
         return 2*i;
@@ -44,59 +49,99 @@ public:
         return 2*i+1;
     }
 
-    void max_heapify(int index){
-        int left = maxheap::left(index);
-        int right = maxheap::right(index);
+    void minmax_heapify(int index){
+        int left = minmax_heap::left(index);
+        int right = minmax_heap::right(index);
         int largest;
-        if(left <= maxheap::data.size()-1 &&  maxheap::data[left] > maxheap::data[index]){
+        if(left <= minmax_heap::heap_size &&  minmax_heap::data[left] > minmax_heap::data[index]){
             largest = left;
         }
         else{
             largest = index;
         }
 
-        if(right <= maxheap::data.size()-1 && maxheap::data[right] > maxheap::data[largest]){
+        if(right <= minmax_heap::heap_size && minmax_heap::data[right] > minmax_heap::data[largest]){
             largest = right;
         }
         std::cout << "largest: " << largest << "left: " << left<< "right: " << right<< std::endl;
-        std::cout << "left child: " << maxheap::data[left] << "right: " << maxheap::data[right]<< std::endl;
+        std::cout << "left child: " << minmax_heap::data[left] << "right: " << minmax_heap::data[right]<< std::endl;
 
-        std::cout << "largest child: " << maxheap::data[largest] << std::endl;
+        std::cout << "largest child: " << minmax_heap::data[largest] << std::endl;
         std::cout << "index: " << index << std::endl;
 
         if(largest != index){
-            std::swap(maxheap::data[index], maxheap::data[largest]);
-            max_heapify(largest);
+            std::swap(minmax_heap::data[index], minmax_heap::data[largest]);
+            minmax_heapify(largest);
         }
     }
+    void pushdown_min(int index){
+        int min_child;
+        int child_foundinfo = 0;
+        if(left(index) <= minmax_heap::heap_size){
+            min_child = left(index);
+            child_foundinfo = 1;
+        }
+        if(right(index) <= minmax_heap::heap_size &&
+        minmax_heap::data[right(index)] < minmax_heap::data[min_child]){
+                min_child = right(index);
+                child_foundinfo = 1;
+        }
+        int left_gchild = left(left(index));
+        for(int i = 0; i < 4 && left_gchild + i < minmax_heap::heap_size; i++){
+            if(minmax_heap::data[left_gchild + i] < minmax_heap::data[min_child]){
+                min_child = left_gchild + i;
+                child_foundinfo = 2;
+            }
+        }
+        if(child_foundinfo == 2){
+            std::swap(minmax_heap::data[index], minmax_heap::data[min_child]);
+            if(minmax_heap::data[min_child] > minmax_heap::data[parent(min_child)]){
+                std::swap(minmax_heap::data[min_child], minmax_heap::data[parent(min_child)]);
+            }
+            pushdown_min(min_child);
+        }
+        else if(child_foundinfo == 1){
+            std::swap(minmax_heap::data[index], minmax_heap::data[min_child]);
+        }
 
-    void build_max_heap(){
-
-        for(int i = std::floor(data.size()/2); i >= 1; i--){
-            max_heapify( i);
+    }
+    void pushdown(int index){
+        int level = std::floor(std::log2(index));
+        if (level % 2 == 0){
+            pushdown_min( index);
+        }else{
+            pushdown_max(index);
+        }
+    }
+    void build_minmax_heap(int n){
+        minmax_heap::heap_size = n;
+        for(int i = std::floor(minmax_heap::heap_size/2); i >= 1; i--){
+            pushdown( i);
         }
         return;
     }
     float extract_max(){
-        if(maxheap::data.size() < 1){
+        if(minmax_heap::data.size() < 1){
             std::cout << "heap underflow" << std::endl;
         }
-        float max = maxheap::data[1];
-        maxheap::data[1] = maxheap::data[maxheap::data.size() -1 ];
-        maxheap::data.pop_back();
+        float max = minmax_heap::data[1];
+        minmax_heap::data[1] = minmax_heap::data[minmax_heap::heap_size ];
+        heap_size--;
+        minmax_heap::data.pop_back();
         print();
-        max_heapify( 1);
+        minmax_heapify( 1);
         print();
         return max;
     }
     void insert(float value){
+        heap_size++;
         data.push_back(value);
         //build_max_heap();
         print();
         
-        int index = data.size()-1;
-        while(index > 0){
-            int parent = maxheap::parent(index);
+        int index = heap_size;
+        while(index > 1){
+            int parent = minmax_heap::parent(index);
             if(data[parent] < data[index]){
                 float temp = data[parent];
                 data[parent] = data[index];
@@ -111,7 +156,7 @@ public:
         return;
     }
 void print(){
-    for(int i = 0; i < data.size(); i++){
+    for(int i = 0; i <= heap_size; i++){
         std::cout << data[i] << " ";
     }
     std::cout << std::endl;
@@ -119,8 +164,21 @@ void print(){
     int size(){
         return data.size();
     }
-};
+bool check_heap(){
+    for(int i = 2; i <= heap_size; i++){
+        if(data[i] > data[minmax_heap::parent(i)]){
+        std::cout << "Child at index "<< i << " " << data[i] <<  std::endl;
+            std::cout << "Parent at index "<< parent(i)  << " " << data[parent(i)]<< std::endl;
+            return false;
+        }
+    }
+    return true;
+    }
 
+
+
+
+};
 
 class stats{
     public:
@@ -328,7 +386,7 @@ void reader(char* file) {
 
 int main(int argc, char** argv) {
   // reader(argv[1]);
-  maxheap heap;
+  minmax_heap heap;
   heap.insert(1);
     heap.insert(2);
     heap.insert(3);
@@ -344,8 +402,17 @@ int main(int argc, char** argv) {
     heap.insert(13);
     heap.insert(1.4);
     heap.print();
+    if(heap.check_heap()){
+        std::cout << "Heap is valid" << std::endl;
+    }else{
+        std::cout << "Heap is not valid" << std::endl;
+    }
     std:: cout << heap.extract_max();
     heap.print();
-
+    if(heap.check_heap()){
+        std::cout << "Heap is valid" << std::endl;
+    }else{
+        std::cout << "Heap is not valid" << std::endl;
+    }
 	return 0;
 }
