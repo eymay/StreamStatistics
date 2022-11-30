@@ -26,6 +26,102 @@ struct element{
 
 };
 
+
+class maxheap{
+    std::vector<float> data;
+public:
+
+    maxheap(){
+        data.push_back(0);
+    }
+    int parent(int i){
+        return std::floor(i/2);
+    }
+    int left(int i){
+        return 2*i;
+    }
+    int right(int i){
+        return 2*i+1;
+    }
+
+    void max_heapify(int index){
+        int left = maxheap::left(index);
+        int right = maxheap::right(index);
+        int largest;
+        if(left <= maxheap::data.size()-1 &&  maxheap::data[left] > maxheap::data[index]){
+            largest = left;
+        }
+        else{
+            largest = index;
+        }
+
+        if(right <= maxheap::data.size()-1 && maxheap::data[right] > maxheap::data[largest]){
+            largest = right;
+        }
+        std::cout << "largest: " << largest << "left: " << left<< "right: " << right<< std::endl;
+        std::cout << "left child: " << maxheap::data[left] << "right: " << maxheap::data[right]<< std::endl;
+
+        std::cout << "largest child: " << maxheap::data[largest] << std::endl;
+        std::cout << "index: " << index << std::endl;
+
+        if(largest != index){
+            std::swap(maxheap::data[index], maxheap::data[largest]);
+            max_heapify(largest);
+        }
+    }
+
+    void build_max_heap(){
+
+        for(int i = std::floor(data.size()/2); i >= 1; i--){
+            max_heapify( i);
+        }
+        return;
+    }
+    float extract_max(){
+        if(maxheap::data.size() < 1){
+            std::cout << "heap underflow" << std::endl;
+        }
+        float max = maxheap::data[1];
+        maxheap::data[1] = maxheap::data[maxheap::data.size() -1 ];
+        maxheap::data.pop_back();
+        print();
+        max_heapify( 1);
+        print();
+        return max;
+    }
+    void insert(float value){
+        data.push_back(value);
+        //build_max_heap();
+        print();
+        
+        int index = data.size()-1;
+        while(index > 0){
+            int parent = maxheap::parent(index);
+            if(data[parent] < data[index]){
+                float temp = data[parent];
+                data[parent] = data[index];
+                data[index] = temp;
+                index = parent;
+            }
+            else{
+                break;
+            }
+        }
+        
+        return;
+    }
+void print(){
+    for(int i = 0; i < data.size(); i++){
+        std::cout << data[i] << " ";
+    }
+    std::cout << std::endl;
+}
+    int size(){
+        return data.size();
+    }
+};
+
+
 class stats{
     public:
 float stats[7] = {0};
@@ -75,12 +171,15 @@ float calculate_firstq(std::vector<element> &data){
     //gumbel quartile
     float q1 = 0;
     int n = data.size();
+    std::cout << n << std::endl;
     if(n%100 == 0){
         q1 = data[(n/4)-1].value;
     }
     else{
-        float left = ceil(n*0.25);
-        float right = floor(n*0.25);
+        float left = data[ceil(n*0.25)].value;
+        float right = data[floor(n*0.25)].value;
+        std::cout << left << " " << right << std::endl;
+
         q1 = data[left].value*(1 - left/(left+right)) + data[right].value*(right/(left+right));
     }
     return q1;
@@ -97,8 +196,19 @@ float calculate_median(std::vector<element> &data){
 }
 
 float calculate_thirdq(std::vector<element> &data){
-    int index = 3*data.size()/4;
-    return data[index].value;
+ //gumbel quartile
+    float q1 = 0;
+    int n = data.size();
+    if(n%100 == 0){
+        q1 = data[(3*n/4)-1].value;
+    }
+    else{
+        float left = ceil(n*0.75);
+        float right = floor(n*0.75);
+        q1 = data[left].value*(1 - left/(left+right)) + data[right].value*(right/(left+right));
+    }
+    return q1;
+
 }
 float calculate_max(std::vector<element> &data){
     float max = data[0].value;
@@ -131,21 +241,21 @@ void print(){
 
 };
 
-std::vector<struct element> data;
+//std::vector<struct element> data;
 stats stats;
 
 void reader(char* file) {
     std::ifstream reader;
     std::string line;
-    data.reserve(11128);
+    //data.reserve(11128);
 
     reader.open(file);
     getline(reader, line);
-    std::cout << line << std::endl;
+    //std::cout << line << std::endl;
     int stat_count = stoi(line);
     for(int i = 0; i < stat_count; i++){
         getline(reader, line);
-        std::cout <<line << std::endl;
+        //std::cout <<line << std::endl;
             if(line == "mean"){
                 options.MEAN = true;
             }else if(line == "std"){
@@ -164,14 +274,13 @@ void reader(char* file) {
         }
 
     
-    std::cout << options.MEDIAN << std::endl;
     
     getline(reader, line);
     getline(reader, line, ',');
     int data_count = stoi(line);
-    std::cout << data_count << std::endl;
+    //std::cout << data_count << std::endl;
     getline(reader, line);
-    std::cout << line << std::endl;
+    //std::cout << line << std::endl;
     if(line == "gap"){
         track_index = 2;
     }else if(line == "grp"){
@@ -187,7 +296,7 @@ void reader(char* file) {
         if(line == "add"){
             struct element temp;
             getline(reader, line, ',');
-            std::cout << line << std::endl;
+            //std::cout << line << std::endl;
             if(stats.first_date == ""){
                 stats.first_date = line;
             }
@@ -204,23 +313,39 @@ void reader(char* file) {
             }
            std::cout <<"Added Value is: " <<line << std::endl;
             temp.value = std::stof(line);
-            data.push_back(temp);
+            //data.push_back(temp);
         }
         if(line == "print"){
-            stats.calculate(data);
+            //stats.calculate(data);
             stats.print();
         }
     }
 
     reader.close();
-    data.shrink_to_fit();
     return;
 }
 
 
 int main(int argc, char** argv) {
-   reader(argv[1]);
-    
+  // reader(argv[1]);
+  maxheap heap;
+  heap.insert(1);
+    heap.insert(2);
+    heap.insert(3);
+    heap.insert(4);
+    heap.insert(5);
+    heap.insert(6);
+    heap.insert(7);
+    heap.insert(8);
+    heap.insert(9);
+    heap.insert(10);
+    heap.insert(11);
+    heap.insert(12);
+    heap.insert(13);
+    heap.insert(1.4);
+    heap.print();
+    std:: cout << heap.extract_max();
+    heap.print();
 
 	return 0;
 }
