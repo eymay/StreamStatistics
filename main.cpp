@@ -18,175 +18,46 @@ bool THIRDQ = false;
 bool MAX = false;
 } options;
 
+struct{
+float mean = 0;
+    struct {
+        //float count = 0;
+        float value = 0;
+        std::vector<float> linear_data;
+    } std;
+float min = 99999;
+float max = 0;
+    struct{
+        float value = 0;
+        minheap min_median;
+        maxheap max_median;
+    } median;
+    
+    struct{
+        float value = 0;
+        minheap min_firstq;
+        maxheap max_firstq;
+    } firstq;
+
+    struct{
+        float value = 0;
+        minheap min_thirdq;
+        maxheap max_thirdq;
+    } thirdq;
+
+} data_structures;
+
 int track_index = 0;
 
-struct element{
-    float value;
-    std::string date;
-    std::string time;
-
-};
 
 
-class minmax_heap{
- std::vector<float> data;
-    int heap_size = 0;
-public:
-
-    minmax_heap(){
-        data.push_back(0);
-    }
-    int parent(int i){
-        return std::floor(i/2);
-    }
-    int grand_parent(int i){
-        return std::floor(i/4);
-    }
-    int left(int i){
-        return 2*i;
-    }
-    int right(int i){
-        return 2*i+1;
-    }
-
-    void minmax_heapify(int index){
-        int left = minmax_heap::left(index);
-        int right = minmax_heap::right(index);
-        int largest;
-        if(left <= minmax_heap::heap_size &&  minmax_heap::data[left] > minmax_heap::data[index]){
-            largest = left;
-        }
-        else{
-            largest = index;
-        }
-
-        if(right <= minmax_heap::heap_size && minmax_heap::data[right] > minmax_heap::data[largest]){
-            largest = right;
-        }
-        std::cout << "largest: " << largest << "left: " << left<< "right: " << right<< std::endl;
-        std::cout << "left child: " << minmax_heap::data[left] << "right: " << minmax_heap::data[right]<< std::endl;
-
-        std::cout << "largest child: " << minmax_heap::data[largest] << std::endl;
-        std::cout << "index: " << index << std::endl;
-
-        if(largest != index){
-            std::swap(minmax_heap::data[index], minmax_heap::data[largest]);
-            minmax_heapify(largest);
-        }
-    }
-    void pushdown_min(int index){
-        int min_child;
-        int child_foundinfo = 0;
-        if(left(index) <= minmax_heap::heap_size){
-            min_child = left(index);
-            child_foundinfo = 1;
-        }
-        if(right(index) <= minmax_heap::heap_size &&
-        minmax_heap::data[right(index)] < minmax_heap::data[min_child]){
-                min_child = right(index);
-                child_foundinfo = 1;
-        }
-        int left_gchild = left(left(index));
-        for(int i = 0; i < 4 && left_gchild + i < minmax_heap::heap_size; i++){
-            if(minmax_heap::data[left_gchild + i] < minmax_heap::data[min_child]){
-                min_child = left_gchild + i;
-                child_foundinfo = 2;
-            }
-        }
-        if(child_foundinfo == 2){
-            std::swap(minmax_heap::data[index], minmax_heap::data[min_child]);
-            if(minmax_heap::data[min_child] > minmax_heap::data[parent(min_child)]){
-                std::swap(minmax_heap::data[min_child], minmax_heap::data[parent(min_child)]);
-            }
-            pushdown_min(min_child);
-        }
-        else if(child_foundinfo == 1){
-            std::swap(minmax_heap::data[index], minmax_heap::data[min_child]);
-        }
-
-    }
-    void pushdown(int index){
-        int level = std::floor(std::log2(index));
-        if (level % 2 == 0){
-            pushdown_min( index);
-        }else{
-            pushdown_max(index);
-        }
-    }
-    void build_minmax_heap(int n){
-        minmax_heap::heap_size = n;
-        for(int i = std::floor(minmax_heap::heap_size/2); i >= 1; i--){
-            pushdown( i);
-        }
-        return;
-    }
-    float extract_max(){
-        if(minmax_heap::data.size() < 1){
-            std::cout << "heap underflow" << std::endl;
-        }
-        float max = minmax_heap::data[1];
-        minmax_heap::data[1] = minmax_heap::data[minmax_heap::heap_size ];
-        heap_size--;
-        minmax_heap::data.pop_back();
-        print();
-        minmax_heapify( 1);
-        print();
-        return max;
-    }
-    void insert(float value){
-        heap_size++;
-        data.push_back(value);
-        //build_max_heap();
-        print();
-        
-        int index = heap_size;
-        while(index > 1){
-            int parent = minmax_heap::parent(index);
-            if(data[parent] < data[index]){
-                float temp = data[parent];
-                data[parent] = data[index];
-                data[index] = temp;
-                index = parent;
-            }
-            else{
-                break;
-            }
-        }
-        
-        return;
-    }
-void print(){
-    for(int i = 0; i <= heap_size; i++){
-        std::cout << data[i] << " ";
-    }
-    std::cout << std::endl;
-}
-    int size(){
-        return data.size();
-    }
-bool check_heap(){
-    for(int i = 2; i <= heap_size; i++){
-        if(data[i] > data[minmax_heap::parent(i)]){
-        std::cout << "Child at index "<< i << " " << data[i] <<  std::endl;
-            std::cout << "Parent at index "<< parent(i)  << " " << data[parent(i)]<< std::endl;
-            return false;
-        }
-    }
-    return true;
-    }
-
-
-
-
-};
-
-class stats{
+class Stats{
     public:
-float stats[7] = {0};
 std::string first_date = "";
 std::string first_time = "";
 std::string last_date;
 std::string last_time;
+/*
 void calculate(std::vector<element> &data){
 first_date = data[0].date;
 first_time = data[0].time;
@@ -201,111 +72,260 @@ stats[4] = calculate_median(data);
 stats[5] = calculate_thirdq(data);
 stats[6] = calculate_max(data);
 };
-float calculate_mean(std::vector<element> &data){
+*/
+void calculate_mean(float new_value){
+    
+    data_structures.mean = data_structures.mean + (new_value - data_structures.mean)/(data_structures.std.linear_data.size()+1);
+}
+void calculate_std(){
     float sum = 0;
-    for(int i = 0; i < data.size(); i++){
-        sum += data[i].value;
-    }
-    return sum/data.size();
-}
-float calculate_std(std::vector<element> &data){
-    float mean = calculate_mean(data);
-    float sum = 0;
-    for(int i = 0; i < data.size(); i++){
-        sum += (data[i].value - mean)*(data[i].value - mean);
-    }
-    return sqrt(sum/(data.size() - 1));
-}
-float calculate_min(std::vector<element> &data){
-    float min = data[0].value;
-    for(int i = 1; i < data.size(); i++){
-        if(data[i].value < min){
-            min = data[i].value;
-        }
-    }
-    return min;
-}
-float calculate_firstq(std::vector<element> &data){
-    //gumbel quartile
-    float q1 = 0;
-    int n = data.size();
-    std::cout << n << std::endl;
-    if(n%100 == 0){
-        q1 = data[(n/4)-1].value;
-    }
-    else{
-        float left = data[ceil(n*0.25)].value;
-        float right = data[floor(n*0.25)].value;
-        std::cout << left << " " << right << std::endl;
-
-        q1 = data[left].value*(1 - left/(left+right)) + data[right].value*(right/(left+right));
-    }
-    return q1;
-}
-float calculate_median(std::vector<element> &data){
-    if (data.size() % 2 == 0){
-        int index = data.size()/2;
-        return (data[index].value + data[index-1].value)/2;
-    }
-    else{
-        int index = data.size()/2;
-        return data[index].value;
-    }
+    for(int i = 0; i < data_structures.std.linear_data.size(); i++){
+        sum += (data_structures.std.linear_data[i] - data_structures.mean)*(data_structures.std.linear_data[i] - data_structures.mean);
+    } 
+    data_structures.std.value = sqrt(sum/(data_structures.std.linear_data.size() - 1));
+    return;
 }
 
-float calculate_thirdq(std::vector<element> &data){
+void calculate_median(){
+    if (data_structures.median.min_median.get_size() > data_structures.median.max_median.get_size()){
+        data_structures.median.value = data_structures.median.min_median.get_min();
+        return ;
+    }
+    else{
+        data_structures.median.value = (data_structures.median.max_median.get_max() + data_structures.median.min_median.get_min())/2;
+        return;
+    }
+}
+void calculate_firstq(){
  //gumbel quartile
+    int total_size = data_structures.firstq.min_firstq.get_size() + data_structures.firstq.max_firstq.get_size();
+    int state = total_size%4;
     float q1 = 0;
-    int n = data.size();
-    if(n%100 == 0){
-        q1 = data[(3*n/4)-1].value;
-    }
-    else{
-        float left = ceil(n*0.75);
-        float right = floor(n*0.75);
-        q1 = data[left].value*(1 - left/(left+right)) + data[right].value*(right/(left+right));
-    }
-    return q1;
 
-}
-float calculate_max(std::vector<element> &data){
-    float max = data[0].value;
-    for(int i = 1; i < data.size(); i++){
-        if(data[i].value > max){
-            max = data[i].value;
-        }
+    if(state == 0){
+        q1 = data_structures.firstq.min_firstq.get_min()*0.75 + data_structures.firstq.max_firstq.get_max()*0.25;
     }
-    return max;
+    else if(state == 1){
+        q1 = data_structures.firstq.max_firstq.get_max();
+    }
+    else if(state == 2){
+        q1 = data_structures.firstq.max_firstq.get_max()*0.75 + data_structures.firstq.min_firstq.get_min()*0.25;
+    }
+    else if(state == 3){
+        q1 = (data_structures.firstq.max_firstq.get_max() + data_structures.firstq.min_firstq.get_min())/2;
+    }
+    data_structures.firstq.value = q1;
 }
 
+void calculate_thirdq(){
+ //gumbel quartile
+    int total_size = data_structures.thirdq.min_thirdq.get_size() + data_structures.thirdq.max_thirdq.get_size();
+    int state = total_size%4;
+    float q3 = 0;
+
+    if(state == 0){
+        q3 = data_structures.thirdq.min_thirdq.get_min()*0.75 + data_structures.thirdq.max_thirdq.get_max()*0.25;
+    }
+    else if(state == 1){
+        q3 = data_structures.thirdq.max_thirdq.get_max();
+    }
+    else if(state == 2){
+        q3 = data_structures.thirdq.max_thirdq.get_max()*0.75 + data_structures.thirdq.min_thirdq.get_min()*0.25;
+    }
+    else if(state == 3){
+        q3 = (data_structures.thirdq.max_thirdq.get_max() + data_structures.thirdq.min_thirdq.get_min())/2;
+    }
+    data_structures.thirdq.value = q3;
+}
 void print(){
     std::cout <<first_date<<","<<first_time<<","<<last_date<<","<<last_time<<",";
     if(options.MEAN){
-        std::cout <<stats[0]<<",";
+        std::cout <<data_structures.mean<<",";
     }if(options.STD){
-        std::cout <<stats[1]<<",";
+        std::cout <<data_structures.std.value<<",";
     }if(options.MIN){
-        std::cout <<stats[2]<<",";
+        std::cout <<data_structures.min<<",";
     }if(options.FIRSTQ){
-        std::cout <<stats[3]<<",";
+        std::cout <<data_structures.firstq.value<<",";
     }if(options.MEDIAN){
-        std::cout <<stats[4]<<",";
+        std::cout <<data_structures.median.value<<",";
     }if(options.THIRDQ){
-        std::cout <<stats[5]<<",";
+        std::cout <<data_structures.thirdq.value<<",";
     }if(options.MAX){
-        std::cout <<stats[6]<< std::endl;
+        std::cout <<data_structures.max<< std::endl;
     }
 }
+void write(){
+    std::ofstream out;
+    out.open("out.txt", std::ios::app);
+    std::streambuf *coutbuf = std::cout.rdbuf(); 
+    std::cout.rdbuf(out.rdbuf());
+    std::cout <<first_date<<","<<first_time<<","<<last_date<<","<<last_time<<",";
+    if(options.MEAN){
+        std::cout <<data_structures.mean<<",";
+    }if(options.STD){
+        std::cout <<data_structures.std.value<<",";
+    }if(options.MIN){
+        std::cout <<data_structures.min<<",";
+    }if(options.FIRSTQ){
+        std::cout <<data_structures.firstq.value<<",";
+    }if(options.MEDIAN){
+        std::cout <<data_structures.median.value<<",";
+    }if(options.THIRDQ){
+        std::cout <<data_structures.thirdq.value<<",";
+    }if(options.MAX){
+        std::cout <<data_structures.max;
+    }
+    std::cout << std::endl;
+    std::cout.rdbuf(coutbuf);
+}
+
 
 };
 
+Stats stats;
+
+class manager{
+    public:
+        
+        void add_element_heap_median(float &e){
+           if(data_structures.median.min_median.get_size() == data_structures.median.max_median.get_size()){
+                data_structures.median.max_median.insert(e);
+                float transfer = data_structures.median.max_median.extract_max();
+                data_structures.median.min_median.insert(transfer);
+           }
+           else{
+                data_structures.median.min_median.insert(e);
+                float transfer = data_structures.median.min_median.extract_min();
+                data_structures.median.max_median.insert(transfer);
+           }
+        }
+        void add_element_heap_firstq(float &e){
+            int state = (data_structures.firstq.min_firstq.get_size() + data_structures.firstq.max_firstq.get_size())%4;
+            if(state == 0){
+                if(e < data_structures.firstq.max_firstq.get_max()){
+                    data_structures.firstq.max_firstq.insert(e);
+                }
+                else{
+                    data_structures.firstq.min_firstq.insert(e);
+                    float transfer = data_structures.firstq.min_firstq.extract_min();
+                    data_structures.firstq.max_firstq.insert(transfer);
+                }
+            }
+            else if(state == 1){
+                if(e < data_structures.firstq.max_firstq.get_max()){
+                    data_structures.firstq.max_firstq.insert(e);
+                    float transfer = data_structures.firstq.max_firstq.extract_max();
+                    data_structures.firstq.min_firstq.insert(transfer);
+                }
+                else{
+                    data_structures.firstq.min_firstq.insert(e);
+                }
+            }
+            else if(state == 2){
+                if(e < data_structures.firstq.min_firstq.get_min()){
+                    data_structures.firstq.max_firstq.insert(e);
+                    float transfer = data_structures.firstq.max_firstq.extract_max();
+                    data_structures.firstq.min_firstq.insert(transfer);
+                }
+                else{
+                    data_structures.firstq.min_firstq.insert(e);
+                }
+            }
+            else if(state == 3){
+                if(e < data_structures.firstq.min_firstq.get_min()){
+                    data_structures.firstq.max_firstq.insert(e);
+                    float transfer = data_structures.firstq.max_firstq.extract_max();
+                    data_structures.firstq.min_firstq.insert(transfer);
+                }
+                else{
+                    data_structures.firstq.min_firstq.insert(e);
+                }
+            }
+        }
+        void add_element_heap_thirdq(float &e){
+            int state = (data_structures.thirdq.min_thirdq.get_size() + data_structures.thirdq.max_thirdq.get_size())%4;
+            if(state == 0){
+                if(e < data_structures.thirdq.max_thirdq.get_max()){
+                    data_structures.thirdq.max_thirdq.insert(e);
+                }
+                else{
+                    data_structures.thirdq.min_thirdq.insert(e);
+                    float transfer = data_structures.thirdq.min_thirdq.extract_min();
+                    data_structures.thirdq.max_thirdq.insert(transfer);
+                }
+            }
+            else if(state == 1){
+                if(e < data_structures.thirdq.max_thirdq.get_max()){
+                    data_structures.thirdq.max_thirdq.insert(e);
+                    float transfer = data_structures.thirdq.max_thirdq.extract_max();
+                    data_structures.thirdq.min_thirdq.insert(transfer);
+                }
+                else{
+                    data_structures.thirdq.min_thirdq.insert(e);
+                }
+            }
+            else if(state == 2){
+                if(e < data_structures.thirdq.min_thirdq.get_min()){
+                    data_structures.thirdq.max_thirdq.insert(e);
+                    float transfer = data_structures.thirdq.max_thirdq.extract_max();
+                    data_structures.thirdq.min_thirdq.insert(transfer);
+                }
+                else{
+                    data_structures.thirdq.min_thirdq.insert(e);
+                }
+            }
+            else if(state == 3){
+                if(e < data_structures.thirdq.min_thirdq.get_min()){
+                    data_structures.thirdq.max_thirdq.insert(e);
+                    float transfer = data_structures.thirdq.max_thirdq.extract_max();
+                    data_structures.thirdq.min_thirdq.insert(transfer);
+                }
+                else{
+                    data_structures.thirdq.min_thirdq.insert(e);
+                }
+            }
+        }
+
+        void add_element(float &e){
+           if(options.MEAN || options.STD){
+               stats.calculate_mean(e);
+           }
+           if(options.STD){
+              data_structures.std.linear_data.push_back(e);
+               stats.calculate_std();
+           }
+           if(options.MIN){
+               if(e < data_structures.min){
+                   data_structures.min = e;
+               }
+           }
+           if(options.MAX){
+               if(e > data_structures.max){
+                   data_structures.max = e;
+               }
+           }
+           if(options.FIRSTQ){
+                add_element_heap_firstq(e);
+                stats.calculate_firstq();
+           }
+           if(options.MEDIAN){
+                add_element_heap_median(e);
+                stats.calculate_median();
+           }
+           if(options.THIRDQ){
+                add_element_heap_thirdq(e);
+                stats.calculate_thirdq();
+           }
+        }
+};
+
 //std::vector<struct element> data;
-stats stats;
 
 void reader(char* file) {
     std::ifstream reader;
     std::string line;
-    //data.reserve(11128);
+    manager manager;
 
     reader.open(file);
     getline(reader, line);
@@ -352,29 +372,28 @@ void reader(char* file) {
     for(int i = 0; i < data_count; i++){
         getline(reader, line);
         if(line == "add"){
-            struct element temp;
             getline(reader, line, ',');
             //std::cout << line << std::endl;
             if(stats.first_date == ""){
                 stats.first_date = line;
             }
-            temp.date = line;
             stats.last_date = line;
             getline(reader, line, ',');
             if(stats.first_time == ""){
                 stats.first_time = line;
             }
-            temp.time = line;
             stats.last_time = line;
            for(int i = 0; i < track_index - 1; i++){
                 getline(reader, line, ',');
             }
            std::cout <<"Added Value is: " <<line << std::endl;
-            temp.value = std::stof(line);
-            //data.push_back(temp);
+           float temp = stof(line);
+           manager.add_element(temp);
+            
         }
         if(line == "print"){
             //stats.calculate(data);
+            stats.write();
             stats.print();
         }
     }
@@ -383,11 +402,8 @@ void reader(char* file) {
     return;
 }
 
-
-int main(int argc, char** argv) {
-  // reader(argv[1]);
-  minmax_heap heap;
-  heap.insert(1);
+void test_heap(minheap &heap){
+heap.insert(1);
     heap.insert(2);
     heap.insert(3);
     heap.insert(4);
@@ -407,12 +423,18 @@ int main(int argc, char** argv) {
     }else{
         std::cout << "Heap is not valid" << std::endl;
     }
-    std:: cout << heap.extract_max();
+    std:: cout << heap.extract_min();
     heap.print();
     if(heap.check_heap()){
         std::cout << "Heap is valid" << std::endl;
     }else{
         std::cout << "Heap is not valid" << std::endl;
     }
-	return 0;
+
+}
+
+int main(int argc, char** argv) {
+   reader(argv[1]);
+
+  	return 0;
 }
