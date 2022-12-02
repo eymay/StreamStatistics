@@ -6,7 +6,23 @@
 #include <sstream>
 #include <time.h>
 #include <cmath>
+#include <chrono>
 #include "heap.h"
+struct {
+    struct simple_perf{
+        std::chrono::duration<double,std::micro> time;
+        int count = 0;
+    };
+    simple_perf mean, min, max, std;
+
+    struct heap_perf{
+        std::chrono::duration<double,std::micro> add_time;
+        std::chrono::duration<double,std::micro> calculate_time;
+        int count = 0;
+    };
+    heap_perf median, firstq, thirdq;
+    
+} perf;
 
 struct {
 bool MEAN = false;
@@ -268,33 +284,76 @@ class manager{
 
         void add_element(double &e){
            if(options.MEAN || options.STD){
+               auto start = std::chrono::high_resolution_clock::now();
                stats.calculate_mean(e);
+               auto finish = std::chrono::high_resolution_clock::now();
+               perf.mean.time = finish - start;
+                perf.mean.count++;
            }
            if(options.STD){
+
+               auto start = std::chrono::high_resolution_clock::now();
               data_structures.std.linear_data.push_back(e);
                stats.calculate_std();
+
+               auto finish = std::chrono::high_resolution_clock::now();
+               perf.std.time = finish - start;
+                perf.std.count++;
            }
            if(options.MIN){
+
+               auto start = std::chrono::high_resolution_clock::now();
                if(e < data_structures.min){
                    data_structures.min = e;
                }
+               auto finish = std::chrono::high_resolution_clock::now();
+               perf.min.time = finish - start;
+                perf.min.count++;
+
            }
            if(options.MAX){
+
+               auto start = std::chrono::high_resolution_clock::now();
                if(e > data_structures.max){
                    data_structures.max = e;
                }
+               auto finish = std::chrono::high_resolution_clock::now();
+               perf.max.time = finish - start;
+                perf.max.count++;
+
            }
            if(options.FIRSTQ){
+               auto start = std::chrono::high_resolution_clock::now();
                 add_element_heap_firstq(e);
+                auto finish = std::chrono::high_resolution_clock::now();
+                auto start2 = std::chrono::high_resolution_clock::now();
                 stats.calculate_firstq();
+                auto finish2 = std::chrono::high_resolution_clock::now();
+                perf.firstq.add_time = finish - start;
+                perf.firstq.calculate_time = finish2 - start2;
+                perf.firstq.count++;
            }
            if(options.MEDIAN){
+               auto start = std::chrono::high_resolution_clock::now();
                 add_element_heap_median(e);
+                auto finish = std::chrono::high_resolution_clock::now();
+                auto start2 = std::chrono::high_resolution_clock::now();
                 stats.calculate_median();
+                auto finish2 = std::chrono::high_resolution_clock::now();
+                perf.median.add_time = finish - start;
+                perf.median.calculate_time = finish2 - start2;
+                perf.median.count++;
            }
            if(options.THIRDQ){
+               auto start = std::chrono::high_resolution_clock::now();
                 add_element_heap_thirdq(e);
+                auto finish = std::chrono::high_resolution_clock::now();
+                auto start2 = std::chrono::high_resolution_clock::now();
                 stats.calculate_thirdq();
+                auto finish2 = std::chrono::high_resolution_clock::now();
+                perf.thirdq.add_time = finish - start;
+                perf.thirdq.calculate_time = finish2 - start2;
+                perf.thirdq.count++;
            }
         }
 };
@@ -411,9 +470,19 @@ heap.insert(1);
     }
 
 }
+void print_perf(){
+    std::cout << "Mean: " << perf.mean.count << " " << perf.mean.time.count() << std::endl;
+    std::cout << "Std: " << perf.std.count << " " << perf.std.time.count() << std::endl;
+    std::cout << "Min: " << perf.min.count << " " << perf.min.time.count() << std::endl;
+    std::cout << "Firstq: " << perf.firstq.count << " " << perf.firstq.add_time.count() << " " << perf.firstq.calculate_time.count() << std::endl;
+    std::cout << "Median: " << perf.median.count << " " << perf.median.add_time.count() << " " << perf.median.calculate_time.count() << std::endl;
+    std::cout << "Thirdq: " << perf.thirdq.count << " " << perf.thirdq.add_time.count() << " " << perf.thirdq.calculate_time.count() << std::endl;
+    std::cout << "Max: " << perf.max.count << " " << perf.max.time.count() << std::endl;
+return;
+}
 
 int main(int argc, char** argv) {
    reader(argv[1]);
-
+    print_perf();
   	return 0;
 }
