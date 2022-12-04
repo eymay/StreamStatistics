@@ -9,6 +9,7 @@
 #include <chrono>
 #include "heap.h"
 
+//to view time taken per calculation function enable PERF_STAT by setting it to 1
 #define PERF_STAT 0
 
 #if PERF_STAT
@@ -28,6 +29,7 @@ struct {
 } perf;
 #endif
 
+//stores options of input file 
 struct {
 bool MEAN = false;
 bool STD = false;
@@ -38,6 +40,8 @@ bool THIRDQ = false;
 bool MAX = false;
 } options;
 
+
+//stores required data for statistics
 struct{
     int count = 0;
 double mean = 0;
@@ -69,10 +73,12 @@ double max = 0;
 
 } data_structures;
 
+//variable that is set to the input feature
+//used to read the input file
 int track_index = 0;
 
 
-
+//Stores date strings and calculate functions of each statistical value
 class Stats{
     public:
 std::string first_date = "";
@@ -81,6 +87,8 @@ std::string last_date;
 std::string last_time;
 
 void calculate_mean_std(double new_value){
+    //Welford's online algorithm used to calculate mean and standard deviation
+    //https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
     data_structures.count++;
     double delta = new_value - data_structures.mean;
     data_structures.mean += delta/data_structures.count;
@@ -103,8 +111,9 @@ void calculate_std(double delta){
     return;
 }
 */
-
+//State encodings and their corresponding operations for heaps used to calculate median, first quartile and third quartile
 void calculate_median(){
+    
     if (data_structures.median.min_median.get_size() > data_structures.median.max_median.get_size()){
         data_structures.median.value = data_structures.median.min_median.get_min();
         return ;
@@ -155,6 +164,7 @@ void calculate_thirdq(){
     }
     data_structures.thirdq.value = q3;
 }
+//for debugging purposes
 void print(){
     std::cout <<first_date<<","<<first_time<<","<<last_date<<","<<last_time<<",";
     if(options.MEAN){
@@ -173,12 +183,14 @@ void print(){
         std::cout <<data_structures.max<< std::endl;
     }
 }
+
+//the print function is modified to print the output to a file
 void write(int index){
     std::ofstream out;
     if(index == 0){
-        out.open("out.txt", std::ios::trunc);
+        out.open("out.txt", std::ios::trunc); //clears the file
     }else{
-        out.open("out.txt", std::ios::app);
+        out.open("out.txt", std::ios::app); //appends to the file
     }
     std::streambuf *coutbuf = std::cout.rdbuf(); 
     std::cout.rdbuf(out.rdbuf());
@@ -207,6 +219,7 @@ void write(int index){
 
 Stats stats;
 
+//manager organises the data and calls the functions to calculate the statistics
 class manager{
     public:
         
@@ -222,6 +235,8 @@ class manager{
                 data_structures.median.max_median.insert(transfer);
            }
         }
+
+        //States of sizes  (k, 3k), (k+1, 3k), (k+1, 3k+1),(k+1, 3k+2) are preserved in the heap
         void add_element_heap_firstq(double &e){
             int state = (data_structures.firstq.min_firstq.get_size() + data_structures.firstq.max_firstq.get_size())%4;
             if(state == 0){
@@ -265,6 +280,7 @@ class manager{
                 }
             }
         }
+        //Similar to the firstq heap above
         void add_element_heap_thirdq(double &e){
             int state = (data_structures.thirdq.min_thirdq.get_size() + data_structures.thirdq.max_thirdq.get_size())%4;
             bool at_max_heap;
@@ -302,7 +318,8 @@ class manager{
                 }
             }
         }
-
+        //calls the functions to calculate the statistics
+        //does not run if the option is not set
         void add_element(double &e){
            if(options.MEAN || options.STD){
 #if PERF_STATS
@@ -332,6 +349,7 @@ class manager{
 #if PERF_STAT
                auto start = std::chrono::high_resolution_clock::now();
 #endif
+               //min and max are found directly here
                if(e < data_structures.min){
                    data_structures.min = e;
                }
@@ -357,16 +375,17 @@ class manager{
 #endif
 
            }
+
            if(options.FIRSTQ){
 #if PERF_STAT
                auto start = std::chrono::high_resolution_clock::now();
 #endif
-                add_element_heap_firstq(e);
+                add_element_heap_firstq(e); //first element is added 
 #if PERF_STAT
                 auto finish = std::chrono::high_resolution_clock::now();
                 auto start2 = std::chrono::high_resolution_clock::now();
 #endif
-                stats.calculate_firstq();
+                stats.calculate_firstq(); //firstq is calculated according to heaps
 #if PERF_STAT   
                 auto finish2 = std::chrono::high_resolution_clock::now();
                 perf.firstq.add_time = finish - start;
@@ -411,7 +430,6 @@ class manager{
         }
 };
 
-//std::vector<struct element> data;
 
 void reader(char* file) {
     std::ifstream reader;
@@ -419,12 +437,10 @@ void reader(char* file) {
     manager manager;
 
     reader.open(file);
-    getline(reader, line);
-    //std::cout << line << std::endl;
-    int stat_count = stoi(line);
+    getline(reader, line); //gets the first line of input file
+    int stat_count = stoi(line); //options are set depending on input file
     for(int i = 0; i < stat_count; i++){
         getline(reader, line);
-        //std::cout <<line << std::endl;
             if(line == "mean"){
                 options.MEAN = true;
             }else if(line == "std"){
@@ -444,12 +460,10 @@ void reader(char* file) {
 
     
     
-    getline(reader, line);
-    getline(reader, line, ',');
-    int data_count = stoi(line);
-    //std::cout << data_count << std::endl;
-    getline(reader, line);
-    //std::cout << line << std::endl;
+    getline(reader, line); //skip the line
+    getline(reader, line, ','); //get the first element of the line
+    int data_count = stoi(line); //get the number of lines after this line
+    getline(reader, line); //get the rest of the line and set the feature to analyse
     if(line == "gap"){
         track_index = 2;
     }else if(line == "grp"){
@@ -459,31 +473,31 @@ void reader(char* file) {
     }else if(line == "gi"){
         track_index = 5;
     }
-int print_count = 0;
-    for(int i = 0; i < data_count; i++){
+
+int print_count = 0; // used to overwrite or append the output file
+    for(int i = 0; i < data_count; i++){ //read the commands 
         getline(reader, line);
         if(line == "add"){
-            getline(reader, line, ',');
+            getline(reader, line, ','); //get the date
             //std::cout << line << std::endl;
             if(stats.first_date == ""){
                 stats.first_date = line;
             }
             stats.last_date = line;
-            getline(reader, line, ',');
+            getline(reader, line, ','); //get the time
             if(stats.first_time == ""){
                 stats.first_time = line;
             }
             stats.last_time = line;
-           for(int i = 0; i < track_index - 1; i++){
+           for(int i = 0; i < track_index - 1; i++){ //skip the elements before the feature to analyse
                 getline(reader, line, ',');
             }
            //std::cout <<"Added Value is: " <<line << std::endl;
-           double temp = stof(line);
+           double temp = stod(line);
            manager.add_element(temp);
             
         }
         if(line == "print"){
-            //stats.calculate(data);
             stats.write(print_count);
             //stats.print();
             print_count++;
@@ -494,8 +508,30 @@ int print_count = 0;
     return;
 }
 
+
+#if PERF_STAT
+void print_perf(){
+    std::cout << "Mean: " << perf.mean.count << " " << perf.mean.time.count() << std::endl;
+    std::cout << "Std: " << perf.std.count << " " << perf.std.time.count() << std::endl;
+    std::cout << "Min: " << perf.min.count << " " << perf.min.time.count() << std::endl;
+    std::cout << "Firstq: " << perf.firstq.count << " " << perf.firstq.add_time.count() << " " << perf.firstq.calculate_time.count() << std::endl;
+    std::cout << "Median: " << perf.median.count << " " << perf.median.add_time.count() << " " << perf.median.calculate_time.count() << std::endl;
+    std::cout << "Thirdq: " << perf.thirdq.count << " " << perf.thirdq.add_time.count() << " " << perf.thirdq.calculate_time.count() << std::endl;
+    std::cout << "Max: " << perf.max.count << " " << perf.max.time.count() << std::endl;
+return;
+}
+#endif
+
+int main(int argc, char** argv) {
+   reader(argv[1]);
+    
+   //print_perf();
+  	return 0;
+}
+
+/*
 void test_heap(minheap &heap){
-heap.insert(1);
+    heap.insert(1);
     heap.insert(2);
     heap.insert(3);
     heap.insert(4);
@@ -524,19 +560,4 @@ heap.insert(1);
     }
 
 }
-void print_perf(){
-    std::cout << "Mean: " << perf.mean.count << " " << perf.mean.time.count() << std::endl;
-    std::cout << "Std: " << perf.std.count << " " << perf.std.time.count() << std::endl;
-    std::cout << "Min: " << perf.min.count << " " << perf.min.time.count() << std::endl;
-    std::cout << "Firstq: " << perf.firstq.count << " " << perf.firstq.add_time.count() << " " << perf.firstq.calculate_time.count() << std::endl;
-    std::cout << "Median: " << perf.median.count << " " << perf.median.add_time.count() << " " << perf.median.calculate_time.count() << std::endl;
-    std::cout << "Thirdq: " << perf.thirdq.count << " " << perf.thirdq.add_time.count() << " " << perf.thirdq.calculate_time.count() << std::endl;
-    std::cout << "Max: " << perf.max.count << " " << perf.max.time.count() << std::endl;
-return;
-}
-
-int main(int argc, char** argv) {
-   reader(argv[1]);
-    print_perf();
-  	return 0;
-}
+*/
