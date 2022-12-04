@@ -156,9 +156,13 @@ void print(){
         std::cout <<data_structures.max<< std::endl;
     }
 }
-void write(){
+void write(int index){
     std::ofstream out;
-    out.open("out.txt", std::ios::app);
+    if(index == 0){
+        out.open("out.txt", std::ios::trunc);
+    }else{
+        out.open("out.txt", std::ios::app);
+    }
     std::streambuf *coutbuf = std::cout.rdbuf(); 
     std::cout.rdbuf(out.rdbuf());
     std::cout <<first_date<<","<<first_time<<","<<last_date<<","<<last_time<<",";
@@ -406,7 +410,7 @@ void reader(char* file) {
     }else if(line == "gi"){
         track_index = 5;
     }
-
+int print_count = 0;
     for(int i = 0; i < data_count; i++){
         getline(reader, line);
         if(line == "add"){
@@ -431,8 +435,9 @@ void reader(char* file) {
         }
         if(line == "print"){
             //stats.calculate(data);
-            stats.write();
+            stats.write(print_count);
             stats.print();
+            print_count++;
         }
     }
 
