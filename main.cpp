@@ -194,23 +194,23 @@ void write(int index){
     }
     std::streambuf *coutbuf = std::cout.rdbuf(); 
     std::cout.rdbuf(out.rdbuf());
-    std::cout <<first_date<<","<<first_time<<","<<last_date<<","<<last_time;
+    out <<first_date<<","<<first_time<<","<<last_date<<","<<last_time;
     if(options.MEAN){
-        std::cout<<"," <<data_structures.mean;
+        out<<"," <<data_structures.mean;
     }if(options.STD){
-        std::cout << "," <<data_structures.std.value;
+        out << "," <<data_structures.std.value;
     }if(options.MIN){
-        std::cout<<"," <<data_structures.min;
+        out<<"," <<data_structures.min;
     }if(options.FIRSTQ){
-        std::cout << "," <<data_structures.firstq.value;
+        out << "," <<data_structures.firstq.value;
     }if(options.MEDIAN){
-        std::cout << "," <<data_structures.median.value;
+        out << "," <<data_structures.median.value;
     }if(options.THIRDQ){
-        std::cout << "," <<data_structures.thirdq.value;
+        out << "," <<data_structures.thirdq.value;
     }if(options.MAX){
-        std::cout<< "," <<data_structures.max;
+        out<< "," <<data_structures.max;
     }
-    std::cout << std::endl;
+    out << std::endl;
     std::cout.rdbuf(coutbuf);
 }
 
