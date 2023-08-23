@@ -1,5 +1,5 @@
 
-M. Eymen Ünay\
+M. Eymen Ünay
 
 *Istanbul Technical University - BLG 335E Analysis of Algorithms I - Assignment II*
 
